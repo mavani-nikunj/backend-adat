@@ -468,7 +468,7 @@ namespace JangadHisabApp.Controllers
                 model.ClientId = User.GetClientId();
                 model.YearId = User.GetYearId();
                 model.Cdate = DateTime.Now;
-
+                model.IsGroupParty = null;
                 _context.Partymasters.Add(model);
                 await _context.SaveChangesAsync();
 
@@ -634,7 +634,15 @@ namespace JangadHisabApp.Controllers
                         Message = "Cannot delete party with existing transactions"
                     });
                 }
-
+                var checkPartyGroup = await _context.Partymasters.Where(p => p.GroupPartyId == id && p.ClientId == User.GetClientId()).AnyAsync();
+                if (checkPartyGroup)
+                {
+                    return StatusCode(500, new
+                    {
+                        Success = false,
+                        Message = "Cannot delete party as it is assigned as a group party for other parties"
+                    });
+                }
                 var party = await _context.Partymasters
                     .FirstOrDefaultAsync(p =>
                         p.Id == id &&

@@ -105,7 +105,8 @@ namespace AdatHisabdubai.Controllers
                             .FirstOrDefaultAsync(),
                         Carat = 0,
                         Invamount = 0,
-                        ExtraInvAmount = 0
+                        ExtraInvAmount = 0,
+                        WithParty = inv.InvoiceNo
 
                     });
                 }
@@ -191,8 +192,8 @@ namespace AdatHisabdubai.Controllers
 
                         Carat = inv.Carat,
                         Invamount = inv.FinalAmount,
-                        ExtraInvAmount = expenseAmount// 👈 put here if you want separate column
-
+                        ExtraInvAmount = expenseAmount,// 👈 put here if you want separate column
+                        WithParty = inv.InvoiceNo
                     });
                 }
             }
