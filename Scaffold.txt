@@ -1,0 +1,530 @@
+Scaffold-DbContext "Server=DESKTOP-TNJ6CUF;Database=AdatHisabApp;Trusted_Connection=True;TrustServerCertificate=True" Microsoft.EntityFrameworkCore.SqlServer -OutputDir Data  -force
+git pull && npm i && npm run build && npm start
+
+================
+openingbalace-old
+ public async Task<IActionResult> GetAll()
+ {
+     try
+     {
+
+
+         var data = await _context.Openingbalances
+             .Where(o => o.ClientId == User.GetClientId() && o.YearId == User.GetYearId())
+             .OrderByDescending(o => o.Id)
+             .Select(o => new
+             {
+                 o.Id,
+                 Currency = new
+                 {
+                     Id = o.CurrencyId,
+                     Name = _context.Currencymsts.Where(z => z.Id == o.CurrencyId).Select(z => z.Name).FirstOrDefault()
+                 },
+                 o.Amount,
+                 Year = new
+                 {
+                     Id = o.YearId,
+                     FromYear = _context.Yearmasters
+                         .Where(y => y.Id == o.YearId)
+                         .Select(y => y.Fromyear)
+                         .FirstOrDefault(),
+                     ToYear = _context.Yearmasters
+                         .Where(y => y.Id == o.YearId)
+                         .Select(y => y.Toyear)
+                         .FirstOrDefault()
+                 },
+                 o.Cdate,
+                 o.Udate
+             })
+             .ToListAsync();
+
+         if (!data.Any())
+         {
+             return Ok(new
+             {
+                 Success = true,
+                 Message = "No opening balance found",
+                 Data = new List<object>()
+             });
+         }
+
+         return Ok(new
+         {
+             Success = true,
+             Message = "Opening balances fetched successfully",
+             Data = data
+         });
+     }
+     catch (Exception ex)
+     {
+
+         return StatusCode(500, new
+         {
+             Success = false,
+             Message = ex.Message
+         });
+     }
+ }
+==============
+
+
+
+using AdatHisabdubai.Data;
+using AdatHisabdubai.Extensions;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+
+namespace JangadHisabApp.Controllers
+{
+    [Route("api/[controller]/[action]")]
+    [ApiController]
+    [Authorize]
+    public class InvoiceDetailController : ControllerBase
+    {
+        private readonly AdatHisabAppContext _context;
+
+        public InvoiceDetailController(AdatHisabAppContext context)
+        {
+            _context = context;
+        }
+
+        // ✅ GET ALL (WITH PAGINATION)
+        [HttpGet]
+        public async Task<IActionResult> GetAll(int? page, int? limit)
+        {
+            int clientId = User.GetClientId();
+            int yearId = User.GetYearId();
+
+            var query = _context.Invoicedetails
+                .Where(x => x.ClientId == clientId && x.YearId == yearId)
+                .OrderByDescending(x => x.Id)
+                .AsQueryable();
+
+            int totalRecords = await query.CountAsync();
+
+            if (page.HasValue && limit.HasValue && page > 0 && limit > 0)
+            {
+                query = query
+                    .Skip((page.Value - 1) * limit.Value)
+                    .Take(limit.Value);
+            }
+
+            var data = await query.ToListAsync();
+
+            if (!data.Any())
+            {
+                return StatusCode(500, new
+                {
+                    Success = false,
+                    Message = "No invoices found"
+                });
+            }
+
+            return Ok(new
+            {
+                Success = true,
+                Message = "Invoice list fetched successfully",
+                TotalRecords = totalRecords,
+                Page = page,
+                Limit = limit,
+                TotalPages = (page.HasValue && limit.HasValue && limit > 0)
+                    ? (int)Math.Ceiling(totalRecords / (double)limit)
+                    : 1,
+                Data = data
+            });
+        }
+
+        // ✅ GET BY ID
+        [HttpGet]
+        public async Task<IActionResult> GetById(int id)
+        {
+            var invoice = await _context.Invoicedetails
+                .FirstOrDefaultAsync(x =>
+                    x.Id == id &&
+                    x.ClientId == User.GetClientId() &&
+                    x.YearId == User.GetYearId());
+
+            if (invoice == null)
+            {
+                return StatusCode(500, new
+                {
+                    Success = false,
+                    Message = "Invoice not found"
+                });
+            }
+
+            return Ok(new
+            {
+                Success = true,
+                Message = "Invoice fetched successfully",
+                Data = invoice
+            });
+        }
+
+        // ✅ CREATE
+        [HttpPost]
+        public async Task<IActionResult> Add([FromBody] Invoicedetail model)
+        {
+            if (User.GetYearId() <= 0)
+            {
+                return StatusCode(500, new
+                {
+                    Success = false,
+                    Message = "Select Financial Year"
+                });
+            }
+
+            if (model.PartyId == null)
+            {
+                return StatusCode(500, new
+                {
+                    Success = false,
+                    Message = "Party is required"
+                });
+            }
+
+            if (model.Invoicedate == null)
+            {
+                return StatusCode(500, new
+                {
+                    Success = false,
+                    Message = "Invoice date is required"
+                });
+            }
+
+            model.ClientId = User.GetClientId();
+            model.YearId = User.GetYearId();
+
+            _context.Invoicedetails.Add(model);
+            await _context.SaveChangesAsync();
+
+            return Ok(new
+            {
+                Success = true,
+                Message = "Invoice created successfully",
+                Data = model
+            });
+        }
+
+        // ✅ UPDATE
+        [HttpPut]
+        public async Task<IActionResult> Update(int id, [FromBody] Invoicedetail dto)
+        {
+            var invoice = await _context.Invoicedetails
+                .FirstOrDefaultAsync(x =>
+                    x.Id == id &&
+                    x.ClientId == User.GetClientId() &&
+                    x.YearId == User.GetYearId());
+
+            if (invoice == null)
+            {
+                return StatusCode(500, new
+                {
+                    Success = false,
+                    Message = "Invoice not found"
+                });
+            }
+
+            invoice.PartyId = dto.PartyId ?? invoice.PartyId;
+            invoice.Invoicedate = dto.Invoicedate ?? invoice.Invoicedate;
+            invoice.Carat = dto.Carat ?? invoice.Carat;
+            invoice.Rate = dto.Rate ?? invoice.Rate;
+            invoice.Amount = dto.Amount ?? invoice.Amount;
+            invoice.Terms = dto.Terms ?? invoice.Terms;
+            invoice.Duedate = dto.Duedate ?? invoice.Duedate;
+            invoice.Remark = dto.Remark ?? invoice.Remark;
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new
+            {
+                Success = true,
+                Message = "Invoice updated successfully",
+                Data = invoice
+            });
+        }
+
+        // ✅ DELETE
+        [HttpDelete]
+        public async Task<IActionResult> Delete(int id)
+        {
+            var invoice = await _context.Invoicedetails
+                .FirstOrDefaultAsync(x =>
+                    x.Id == id &&
+                    x.ClientId == User.GetClientId() &&
+                    x.YearId == User.GetYearId());
+
+            if (invoice == null)
+            {
+                return StatusCode(500, new
+                {
+                    Success = false,
+                    Message = "Invoice not found"
+                });
+            }
+
+            _context.Invoicedetails.Remove(invoice);
+            await _context.SaveChangesAsync();
+
+            return Ok(new
+            {
+                Success = true,
+                Message = "Invoice deleted successfully",
+                Data = invoice
+            });
+        }
+    }
+}
+=======================================
+
+using AdatHisabdubai.Data;
+using AdatHisabdubai.Extensions;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+
+namespace JangadHisabApp.Controllers
+{
+    [Route("api/[controller]/[action]")]
+    [ApiController]
+    [Authorize]
+    public class TransactionController : ControllerBase
+    {
+        private readonly AdatHisabAppContext _context;
+
+        public TransactionController(AdatHisabAppContext context)
+        {
+            _context = context;
+        }
+
+        // ✅ GET ALL TRANSACTIONS (WITH PAGINATION)
+        [HttpGet]
+        public async Task<IActionResult> GetAll(int? page, int? limit)
+        {
+            int clientId = User.GetClientId();
+            int yearId = User.GetYearId();
+
+            var query = _context.Transactions
+                .Where(t => t.ClientId == clientId && t.YearId == yearId)
+                .OrderByDescending(t => t.Id)
+                .AsQueryable();
+
+            int totalRecords = await query.CountAsync();
+
+            if (page.HasValue && limit.HasValue && page > 0 && limit > 0)
+            {
+                query = query
+                    .Skip((page.Value - 1) * limit.Value)
+                    .Take(limit.Value);
+            }
+
+            var data = await query.ToListAsync();
+
+            if (!data.Any())
+            {
+                return StatusCode(500, new
+                {
+                    Success = false,
+                    Message = "No transactions found"
+                });
+            }
+
+            return Ok(new
+            {
+                Success = true,
+                Message = "Transactions fetched successfully",
+                TotalRecords = totalRecords,
+                Page = page,
+                Limit = limit,
+                TotalPages = (page.HasValue && limit.HasValue && limit > 0)
+                    ? (int)Math.Ceiling(totalRecords / (double)limit)
+                    : 1,
+                Data = data
+            });
+        }
+
+        // ✅ GET TRANSACTION BY ID
+        [HttpGet]
+        public async Task<IActionResult> GetById(int id)
+        {
+            var transaction = await _context.Transactions
+                .FirstOrDefaultAsync(t =>
+                    t.Id == id &&
+                    t.ClientId == User.GetClientId() &&
+                    t.YearId == User.GetYearId());
+
+            if (transaction == null)
+            {
+                return StatusCode(500, new
+                {
+                    Success = false,
+                    Message = "Transaction not found"
+                });
+            }
+
+            return Ok(new
+            {
+                Success = true,
+                Message = "Transaction fetched successfully",
+                Data = transaction
+            });
+        }
+
+        // ✅ CREATE TRANSACTION
+        [HttpPost]
+        public async Task<IActionResult> Add([FromBody] Transaction model)
+        {
+            if (User.GetYearId() <= 0)
+            {
+                return StatusCode(500, new
+                {
+                    Success = false,
+                    Message = "Select Financial Year"
+                });
+            }
+
+            if (model.PartyId == null)
+            {
+                return StatusCode(500, new
+                {
+                    Success = false,
+                    Message = "Party is required"
+                });
+            }
+
+            if (model.Amount == null || model.Amount <= 0)
+            {
+                return StatusCode(500, new
+                {
+                    Success = false,
+                    Message = "Amount must be greater than zero"
+                });
+            }
+
+            model.ClientId = User.GetClientId();
+            model.YearId = User.GetYearId();
+            model.Cdate = DateTime.Now;
+
+            // Auto calculate convert amount if exchange rate provided
+            if (model.ExRate.HasValue && model.Amount.HasValue)
+            {
+                model.ConvertAmount = model.Amount * model.ExRate;
+            }
+
+            _context.Transactions.Add(model);
+            await _context.SaveChangesAsync();
+
+            return Ok(new
+            {
+                Success = true,
+                Message = "Transaction created successfully",
+                Data = model
+            });
+        }
+
+        // ✅ UPDATE TRANSACTION
+        [HttpPut]
+        public async Task<IActionResult> Update(int id, [FromBody] Transaction dto)
+        {
+            var transaction = await _context.Transactions
+                .FirstOrDefaultAsync(t =>
+                    t.Id == id &&
+                    t.ClientId == User.GetClientId() &&
+                    t.YearId == User.GetYearId());
+
+            if (transaction == null)
+            {
+                return StatusCode(500, new
+                {
+                    Success = false,
+                    Message = "Transaction not found"
+                });
+            }
+
+            transaction.JvId = dto.JvId ?? transaction.JvId;
+            transaction.PartyId = dto.PartyId ?? transaction.PartyId;
+            transaction.CreatDate = dto.CreatDate ?? transaction.CreatDate;
+            transaction.Amount = dto.Amount ?? transaction.Amount;
+            transaction.CurrencyId = dto.CurrencyId ?? transaction.CurrencyId;
+            transaction.PaymentType = dto.PaymentType ?? transaction.PaymentType;
+            transaction.ExRate = dto.ExRate ?? transaction.ExRate;
+            transaction.Remark = dto.Remark ?? transaction.Remark;
+            transaction.Udate = DateTime.Now;
+
+            // Recalculate convert amount
+            if (transaction.ExRate.HasValue && transaction.Amount.HasValue)
+            {
+                transaction.ConvertAmount = transaction.Amount * transaction.ExRate;
+            }
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new
+            {
+                Success = true,
+                Message = "Transaction updated successfully",
+                Data = transaction
+            });
+        }
+
+        // ✅ DELETE TRANSACTION
+        [HttpDelete]
+        public async Task<IActionResult> Delete(int id)
+        {
+            var transaction = await _context.Transactions
+                .FirstOrDefaultAsync(t =>
+                    t.Id == id &&
+                    t.ClientId == User.GetClientId() &&
+                    t.YearId == User.GetYearId());
+
+            if (transaction == null)
+            {
+                return StatusCode(500, new
+                {
+                    Success = false,
+                    Message = "Transaction not found"
+                });
+            }
+
+            _context.Transactions.Remove(transaction);
+            await _context.SaveChangesAsync();
+
+            return Ok(new
+            {
+                Success = true,
+                Message = "Transaction deleted successfully",
+                Data = transaction
+            });
+        }
+    }
+}
+++++++++++++++++++++++++++++++++++
+
+{
+    "jvId": 1,
+    "transactionDate": "2026-01-15T13:25:47.494Z",
+    "remark":"",
+    "transactionLIstdtos": [
+        {
+            "partyId": 3,
+            "creatDate": "2026-01-10",
+            "amount": 100,
+            "currencyId": 1,
+            "paymentType": "Receive",
+            "exRate": 90.50,
+            "convertAmount": 9050,
+            "remark": "dollar to rs"
+        },
+        {
+            "partyId": 6,
+            "creatDate": "2026-01-11",
+            "amount": 9050,
+            "currencyId": 3,
+            "paymentType": "Payment",
+            "exRate": 0,
+            "convertAmount": 0,
+            "remark": "rs receive"
+        }
+    ]
+}

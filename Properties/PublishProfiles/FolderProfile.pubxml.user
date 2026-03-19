@@ -1,0 +1,53 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!-- https://go.microsoft.com/fwlink/?LinkID=208121. -->
+<Project>
+  <PropertyGroup>
+    <_PublishTargetUrl>E:\AdatHisabApp</_PublishTargetUrl>
+    <History>True|2026-03-13T17:35:53.0766914Z||;True|2026-02-14T22:14:22.7613945+05:30||;True|2026-02-14T08:35:35.4305405+05:30||;True|2026-02-14T08:12:01.9830487+05:30||;True|2026-02-13T23:07:32.2084971+05:30||;True|2026-02-13T21:59:34.6509131+05:30||;True|2026-02-12T21:36:04.7965325+05:30||;True|2026-02-12T20:36:51.4741868+05:30||;True|2026-02-12T08:00:59.9331095+05:30||;True|2026-02-11T09:13:23.1271370+05:30||;True|2026-02-11T00:18:00.4181029+05:30||;True|2026-02-10T07:35:04.1020835+05:30||;True|2026-02-09T13:51:29.2755750+05:30||;True|2026-01-22T21:09:02.0369305+05:30||;True|2026-01-21T17:50:25.0511921+05:30||;</History>
+    <LastFailureDetails />
+  </PropertyGroup>
+  <ItemGroup>
+    <File Include="Dto/Balancedetaildto.cs">
+      <publishTime>01/20/2026 22:52:24</publishTime>
+    </File>
+    <File Include="Dto/Ladjerdto.cs">
+      <publishTime>01/20/2026 19:32:34</publishTime>
+    </File>
+    <File Include="Dto/LoginDto.cs">
+      <publishTime>12/29/2025 19:22:47</publishTime>
+    </File>
+    <File Include="Dto/Outstandinginvoicedto.cs">
+      <publishTime>01/21/2026 13:33:09</publishTime>
+    </File>
+    <File Include="Dto/PartywiseInvoicedetaildto.cs">
+      <publishTime>01/20/2026 22:06:44</publishTime>
+    </File>
+    <File Include="Dto/Registerdot.cs">
+      <publishTime>01/14/2026 20:27:44</publishTime>
+    </File>
+    <File Include="Dto/tokendto.cs">
+      <publishTime>01/15/2026 14:50:24</publishTime>
+    </File>
+    <File Include="Dto/Transactiondto.cs">
+      <publishTime>01/15/2026 23:10:48</publishTime>
+    </File>
+    <File Include="Dto/TransactionItemDto.cs">
+      <publishTime>02/04/2026 16:31:09</publishTime>
+    </File>
+    <File Include="Dto/TransactionLIstdto.cs">
+      <publishTime>01/15/2026 18:48:21</publishTime>
+    </File>
+    <File Include="Dto/TransactionRequestDto.cs">
+      <publishTime>01/18/2026 23:05:05</publishTime>
+    </File>
+    <File Include="Dto/UpdateSingletransactionDto.cs">
+      <publishTime>01/22/2026 20:30:00</publishTime>
+    </File>
+    <File Include="Dto/Updateuserdto.cs">
+      <publishTime>01/20/2026 23:37:25</publishTime>
+    </File>
+    <File Include="Dto/Yearselectdto.cs">
+      <publishTime>01/14/2026 22:06:53</publishTime>
+    </File>
+  </ItemGroup>
+</Project>

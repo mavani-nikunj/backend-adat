@@ -1,0 +1,6 @@
+@AdatHisabdubai_HostAddress = http://localhost:5004
+
+GET {{AdatHisabdubai_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

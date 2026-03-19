@@ -1,0 +1,160 @@
+       var partyCurrencies = await _context.Partymasters
+.Where(p =>
+    (p.Id == model.Receive.PartyId || p.Id == model.Payment.PartyId) &&
+    p.ClientId == clientId &&
+    p.YearId == yearId
+)
+.Select(p => new
+{
+    p.Id,
+    p.CurrencyId
+})
+.ToListAsync();
+
+       // Get BOTH currency Id dynamically
+       var bothCurrencyId = await _context.Currencymsts
+           .Where(x => x.Name == "BOTH")
+           .Select(x => x.Id)
+           .FirstOrDefaultAsync();
+
+       var receivePartyCurrency = partyCurrencies
+           .FirstOrDefault(x => x.Id == model.Receive.PartyId)?.CurrencyId;
+
+       var paymentPartyCurrency = partyCurrencies
+           .FirstOrDefault(x => x.Id == model.Payment.PartyId)?.CurrencyId;
+
+       if (receivePartyCurrency == null || paymentPartyCurrency == null)
+       {
+           return BadRequest(new
+           {
+               Success = false,
+               Message = "One or more parties not found"
+           });
+       }
+
+       // ✅ RECEIVE VALIDATION
+       if (receivePartyCurrency != bothCurrencyId &&
+           receivePartyCurrency != model.Receive.CurrencyId)
+       {
+           return BadRequest(new
+           {
+               Success = false,
+               Message = "Receive currency must match Receive party currency"
+           });
+       }
+
+       // ✅ PAYMENT VALIDATION
+       if (paymentPartyCurrency != bothCurrencyId &&
+           paymentPartyCurrency != model.Payment.CurrencyId)
+       {
+           return BadRequest(new
+           {
+               Success = false,
+               Message = "Payment currency must match Payment party currency"
+           });
+       }
+======================
+
+ // ✅ GET ALL TRANSACTIONS (WITH PAGINATION)
+ [HttpGet]
+ [Authorize]
+ public async Task<IActionResult> GetAll(int? page, int? limit, string? paymenttype)
+ {
+     int clientId = User.GetClientId();
+     int yearId = User.GetYearId();
+
+     var query = _context.Transactions
+         .Where(t => t.ClientId == clientId && t.YearId == yearId)
+         .OrderByDescending(t => t.Id)
+         .Select(t => new
+         {
+             t.Id,
+             t.JvId,
+
+             // ✅ PARTY
+             Party = new
+             {
+                 Id = t.PartyId,
+                 Name = _context.Partymasters
+                     .Where(p => p.Id == t.PartyId)
+                     .Select(p => p.Name)
+                     .FirstOrDefault()
+             },
+
+             // ✅ CURRENCY
+             Currency = new
+             {
+                 Id = t.CurrencyId,
+                 Name = _context.Currencymsts
+                     .Where(c => c.Id == t.CurrencyId)
+                     .Select(c => c.Name)
+                     .FirstOrDefault()
+             },
+
+             // ✅ CLIENT
+             Client = new
+             {
+                 Id = t.ClientId,
+                 Name = _context.Clientmasters
+                     .Where(c => c.Id == t.ClientId)
+                     .Select(c => c.Name)
+                     .FirstOrDefault()
+             },
+
+             t.YearId,
+             t.CreatDate,
+             t.Amount,
+             t.PaymentType,
+             t.ExRate,
+             t.ConvertAmount,
+             t.Remark,
+             t.Cdate,
+             t.Udate,
+             t.AdatAmount,
+             t.AdatPercent,
+             t.AmountWithoutAdat,
+             t.BalanceType,
+             t.InvoiceId
+         })
+         .AsQueryable();
+
+     // ✅ APPLY TRANSACTION TYPE FILTER
+     if (!string.IsNullOrWhiteSpace(paymenttype))
+     {
+         query = query.Where(t =>
+             t.PaymentType.ToLower() == paymenttype.ToLower());
+     }
+
+     int totalRecords = await query.CountAsync();
+
+     if (page.HasValue && limit.HasValue && page > 0 && limit > 0)
+     {
+         query = query
+             .Skip((page.Value - 1) * limit.Value)
+             .Take(limit.Value);
+     }
+
+     var data = await query.ToListAsync();
+
+     if (!data.Any())
+     {
+         return Ok(new
+         {
+             Success = false,
+             Message = "No transactions found"
+         });
+     }
+
+     return Ok(new
+     {
+         Success = true,
+         Message = "Transactions fetched successfully",
+         TotalRecords = totalRecords,
+         Page = page,
+         Limit = limit,
+         TotalPages = limit > 0
+             ? (int)Math.Ceiling(totalRecords / (double)limit)
+             : 1,
+         Data = data
+     });
+ }
