@@ -476,7 +476,9 @@ namespace AdatHisabdubai.Controllers
                 var receivedAmount = await _context.Transactions
                     .Where(x => x.ClientId == clientId && x.YearId == yearId && x.InvoiceId == invoice.Id && x.PaymentType == "Receive")
                     .SumAsync(x => x.Amount) ?? 0;
-                var outstandingAmount = (invoice.FinalAmount ?? 0) - receivedAmount;
+                var outstandingAmount =
+      (invoice.IsExtra == true ? (invoice.Amount ?? 0) : (invoice.FinalAmount ?? 0))
+      - receivedAmount;
                 if (outstandingAmount > 0)
                 {
                     var today = DateOnly.FromDateTime(DateTime.Now);
@@ -491,7 +493,9 @@ namespace AdatHisabdubai.Controllers
                         PartyName = (await _context.Partymasters.FindAsync(invoice.ShiperId))?.Name,
                         InvoiceDate = invoice.Invoicedate,
                         DueDate = invoice.Duedate,
-                        InvoiceAmount = invoice.FinalAmount,
+                        InvoiceAmount = invoice.IsExtra == true
+                                        ? (invoice.Amount ?? 0)
+                                            : (invoice.FinalAmount ?? 0),
                         ReceiveAmount = receivedAmount,
                         OutstandingAmount = outstandingAmount,
                         Days = daysOutstanding,
