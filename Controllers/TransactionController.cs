@@ -586,7 +586,8 @@ namespace AdatHisabdubai.Controllers
                 ClientId = User.GetClientId(),
                 YearId = User.GetYearId(),
                 Cdate = DateTime.Now,
-                RevPartyId = model.BalanceType
+                RevPartyId = model.BalanceType,
+                ConvertCurrencyId = model.CurrencyId
             };
             _context.Transactions.Add(transaction);
             await _context.SaveChangesAsync();
@@ -1030,7 +1031,8 @@ namespace AdatHisabdubai.Controllers
             ClientId = clientId,
             YearId = yearId,
             Udate = DateTime.Now,
-            RevPartyId=model.Payment.PartyId
+            RevPartyId=model.Payment.PartyId,
+            ConvertCurrencyId=model.Payment.CurrencyId
         },
 
         new Transaction
@@ -1048,7 +1050,8 @@ namespace AdatHisabdubai.Controllers
             YearId = yearId,
             Udate = DateTime.Now,
             InvoiceId=0,
-            RevPartyId=model.Receive.PartyId
+            RevPartyId=model.Receive.PartyId,
+            ConvertCurrencyId=model.Receive.CurrencyId
         }
     };
 
