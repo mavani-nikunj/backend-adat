@@ -457,10 +457,11 @@ namespace AdatHisabdubai.Controllers
             var clientId = User.GetClientId();
             var yearId = User.GetYearId();
             var invoices = await _context.Invoicedetails
-                .Where(x => x.ClientId == clientId && x.YearId == yearId &&
-                (fromdate == null || x.Duedate >= fromdate) &&
-                (todata == null || x.Duedate <= todata))
-                .ToListAsync();
+     .Where(x => x.ClientId == clientId && x.YearId == yearId &&
+         (!fromdate.HasValue || x.Duedate >= fromdate.Value) &&
+         (!todata.HasValue || x.Duedate <= todata.Value))
+     .ToListAsync();
+            Console.WriteLine($"From--------------: {fromdate}, To: {todata}");
             if (invoices.Count == 0)
             {
                 return Ok(new

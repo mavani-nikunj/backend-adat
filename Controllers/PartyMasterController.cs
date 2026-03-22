@@ -468,7 +468,7 @@ namespace JangadHisabApp.Controllers
                 model.ClientId = User.GetClientId();
                 model.YearId = User.GetYearId();
                 model.Cdate = DateTime.Now;
-                model.IsGroupParty = null;
+                model.IsGroupParty = model.IsGroupParty;
                 _context.Partymasters.Add(model);
                 await _context.SaveChangesAsync();
 

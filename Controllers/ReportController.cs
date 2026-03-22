@@ -299,7 +299,7 @@ namespace AdatHisabdubai.Controllers
                     Credit = credit,
                     Currency = currencyName,
                     WithParty = await _context.Partymasters.Where(x => x.Id == (isMainParty ? tr.RevPartyId : tr.PartyId)).Select(x => x.Name).FirstOrDefaultAsync(),
-                    ConverRemark = $"{_context.Currencymsts.Where(z => z.Id == tr.ConvertCurrencyId).Select(z => z.Name).FirstOrDefault()}-{tr.ExRate}"
+                    ConverRemark = $"{_context.Currencymsts.Where(z => z.Id == tr.ConvertCurrencyId).Select(z => z.Name).FirstOrDefault()} - {tr.ExRate}"
 
 
                 });

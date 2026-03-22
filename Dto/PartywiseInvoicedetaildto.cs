@@ -8,6 +8,9 @@
         public decimal? PeymentAmount { get; set; }
         public decimal? ReceiveAmount { get; set; }
         public decimal? BalanceAmount { get; set; }
+        public string? ShiperComponyName { get; set; }
+        public string? ShiperName
+        { get; set; }
 
 
     }
