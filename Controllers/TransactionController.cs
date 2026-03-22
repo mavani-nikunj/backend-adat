@@ -192,62 +192,122 @@ namespace AdatHisabdubai.Controllers
                     Message = "Party Id not found"
                 });
             }
-
-
-            var invoices = await _context.Invoicedetails
-            .Where(x => x.ShiperId == id && x.ClientId == clientId && x.YearId == yearId).ToListAsync();
-
-
-            foreach (var item in invoices)
+            // Check invoice exists for party
+            var partyIdcheck = await _context.Invoicedetails
+                .AnyAsync(x =>
+                    (x.ShiperId == id) &&
+                    x.ClientId == clientId &&
+                    x.YearId == yearId);
+            if (!partyIdcheck)
             {
-                if (item.IsExtra == false && item.IsOpening == false)
+                var adatHisabList = await _context.Adatdetails
+        .Where(a => a.AdatPartyId == id && a.ClientId == clientId && a.YearId == yearId)
+        .ToListAsync(); // 🔥 use list (not First)
+
+                if (!adatHisabList.Any())
                 {
+                    return Ok(new
+                    {
+                        Success = true,
+                        Message = "No Invoice or Adat Hisab found",
+                        Data = new List<PartywiseInvoicedetaildto>()
+                    });
+                }
+
+                foreach (var adat in adatHisabList)
+                {
+                    var checkInvoice = await _context.Invoicedetails.Where(z => z.Id == adat.InvoiceId).FirstOrDefaultAsync();
+
                     var recamount = await _context.Transactions
-                   .Where(t => t.InvoiceId == item.Id && t.PaymentType == "Receive" && t.ClientId == clientId && t.YearId == yearId)
-                   .SumAsync(t => (decimal?)t.Amount) ?? 0;
-                    var outstandingAmount = item.FinalAmount - recamount;
+                 .Where(t => t.InvoiceId == adat.InvoiceId && t.PartyId == adat.AdatPartyId &&
+                             t.PaymentType == "Payment" &&
+                             t.ClientId == clientId &&
+                             t.YearId == yearId)
+                 .SumAsync(t => (decimal?)t.Amount) ?? 0;
+
+                    var outstandingAmount = (adat.Amount ?? 0) - recamount;
+
                     if (outstandingAmount > 0)
                     {
                         invoicedetail.Add(new PartywiseInvoicedetaildto
                         {
-                            Id = item.Id,
-                            ShiperName = _context.Partymasters.Where(p => p.Id == item.ShiperId).Select(p => p.Name).FirstOrDefault(),
-                            ShiperComponyName = _context.Partymasters.Where(p => p.Id == item.ShiperCompanyId).Select(p => p.Name).FirstOrDefault(),
-                            Invoicedate = item.Invoicedate?.ToDateTime(TimeOnly.MinValue),
-                            DueDate = item.Duedate?.ToDateTime(TimeOnly.MinValue),
-                            PeymentAmount = item.FinalAmount,
+                            Id = (int)adat.InvoiceId,
+                            ShiperName = _context.Partymasters
+                                .Where(p => p.Id == adat.AdatPartyId)
+                                .Select(p => p.Name)
+                                .FirstOrDefault(),
+                            ShiperComponyName = null,
+                            Invoicedate = adat.Invoicedate?.ToDateTime(TimeOnly.MinValue),
+                            DueDate = adat.Invoicedate?.ToDateTime(TimeOnly.MinValue),
+                            PeymentAmount = adat.Amount,
                             ReceiveAmount = recamount,
                             BalanceAmount = outstandingAmount
-
                         });
                     }
 
+
                 }
-                else if (item.IsExtra == true && item.IsOpening == false)
+            }
+            else
+            {
+
+
+
+                var invoices = await _context.Invoicedetails
+                .Where(x => x.ShiperId == id && x.ClientId == clientId && x.YearId == yearId).ToListAsync();
+
+
+                foreach (var item in invoices)
                 {
-                    var adatHisabList = await _context.Adatdetails.Where(a => a.InvoiceId == item.Id && a.ClientId == clientId && a.YearId == yearId).FirstOrDefaultAsync();
-                    var recamount = await _context.Transactions
-                   .Where(t => t.InvoiceId == item.Id && t.PaymentType == "Receive" && t.ClientId == clientId && t.YearId == yearId)
-                   .SumAsync(t => (decimal?)t.Amount) ?? 0;
-                    var outstandingAmount = adatHisabList.Amount - recamount;
-                    if (outstandingAmount > 0)
+                    if (item.IsExtra == false && item.IsOpening == false)
                     {
-                        invoicedetail.Add(new PartywiseInvoicedetaildto
+                        var recamount = await _context.Transactions
+                       .Where(t => t.InvoiceId == item.Id && t.PaymentType == "Receive" && t.ClientId == clientId && t.YearId == yearId)
+                       .SumAsync(t => (decimal?)t.Amount) ?? 0;
+                        var outstandingAmount = item.FinalAmount - recamount;
+                        if (outstandingAmount > 0)
                         {
-                            Id = item.Id,
-                            ShiperName = _context.Partymasters.Where(p => p.Id == item.ShiperId).Select(p => p.Name).FirstOrDefault(),
-                            ShiperComponyName = _context.Partymasters.Where(p => p.Id == item.ShiperCompanyId).Select(p => p.Name).FirstOrDefault(),
-                            Invoicedate = item.Invoicedate?.ToDateTime(TimeOnly.MinValue),
-                            DueDate = item.Duedate?.ToDateTime(TimeOnly.MinValue),
-                            PeymentAmount = item.FinalAmount,
-                            ReceiveAmount = recamount,
-                            BalanceAmount = outstandingAmount
+                            invoicedetail.Add(new PartywiseInvoicedetaildto
+                            {
+                                Id = item.Id,
+                                ShiperName = _context.Partymasters.Where(p => p.Id == item.ShiperId).Select(p => p.Name).FirstOrDefault(),
+                                ShiperComponyName = _context.Partymasters.Where(p => p.Id == item.ShiperCompanyId).Select(p => p.Name).FirstOrDefault(),
+                                Invoicedate = item.Invoicedate?.ToDateTime(TimeOnly.MinValue),
+                                DueDate = item.Duedate?.ToDateTime(TimeOnly.MinValue),
+                                PeymentAmount = item.FinalAmount,
+                                ReceiveAmount = recamount,
+                                BalanceAmount = outstandingAmount
 
-                        });
+                            });
+                        }
+
+                    }
+                    else if (item.IsExtra == true && item.IsOpening == false)
+                    {
+                        var adatHisabList = await _context.Adatdetails.Where(a => a.InvoiceId == item.Id && a.ClientId == clientId && a.YearId == yearId).FirstOrDefaultAsync();
+                        var recamount = await _context.Transactions
+                       .Where(t => t.InvoiceId == item.Id && t.PartyId == item.ShiperId && t.PaymentType == "Payment" && t.ClientId == clientId && t.YearId == yearId)
+                       .SumAsync(t => (decimal?)t.Amount) ?? 0;
+                        var outstandingAmount = item.Amount - recamount;
+                        if (outstandingAmount > 0)
+                        {
+                            invoicedetail.Add(new PartywiseInvoicedetaildto
+                            {
+                                Id = item.Id,
+                                ShiperName = _context.Partymasters.Where(p => p.Id == item.ShiperId).Select(p => p.Name).FirstOrDefault(),
+                                ShiperComponyName = _context.Partymasters.Where(p => p.Id == item.ShiperCompanyId).Select(p => p.Name).FirstOrDefault(),
+                                Invoicedate = item.Invoicedate?.ToDateTime(TimeOnly.MinValue),
+                                DueDate = item.Duedate?.ToDateTime(TimeOnly.MinValue),
+                                PeymentAmount = item.Amount,
+                                ReceiveAmount = recamount,
+                                BalanceAmount = outstandingAmount
+
+                            });
+                        }
+
                     }
 
                 }
-
             }
             invoicedetail = invoicedetail.OrderBy(x => x.Id).ToList();
             return Ok(new
@@ -672,7 +732,7 @@ namespace AdatHisabdubai.Controllers
             BalanceType=0,
             InvoiceId=model.Receive.InvoiceId ?? 0,
             RevPartyId=model.Payment.PartyId,
-            ConvertCurrencyId=model.Payment.PartyId
+            ConvertCurrencyId=model.Payment.CurrencyId
 
 
         },
@@ -694,7 +754,7 @@ namespace AdatHisabdubai.Controllers
             BalanceType=0,
              InvoiceId=model.Payment.InvoiceId??0,
              RevPartyId=model.Receive.PartyId,
-             ConvertCurrencyId=model.Receive.PartyId
+             ConvertCurrencyId=model.Receive.CurrencyId
         }
     };
 

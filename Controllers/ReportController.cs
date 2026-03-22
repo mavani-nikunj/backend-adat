@@ -206,8 +206,8 @@ namespace AdatHisabdubai.Controllers
                     Date = extra.Cdate.Value,
                     Remark = extra.Remark,
                     PaymentType = "Adat",
-                    Debit = extra.Amount,
-                    Credit = 0,
+                    Debit = 0,
+                    Credit = extra.Amount,
                     DisplayAmount = 0,
                     Currency = await _context.Currencymsts
                         .Where(x => x.Id == 1)
