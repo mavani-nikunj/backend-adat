@@ -267,6 +267,12 @@ namespace AdatHisabdubai.Controllers
                 if (existing == null)
                     return StatusCode(500, new { Success = false, Message = "Extra invoice not found" });
 
+                var extraInvoiceExitsinTransaction = await _context.Transactions.Where(x => x.InvoiceId == id && x.PartyId == existing.ShiperId && x.ClientId == clientId && x.YearId == yearId).FirstOrDefaultAsync();
+                if (extraInvoiceExitsinTransaction != null)
+                {
+                    return StatusCode(500, new { Success = false, Message = "Cannot update extra invoice linked to transactions" });
+                }
+
                 // update permitted fields
                 existing.ShiperId = model.ShiperId ?? existing.ShiperId;
                 existing.Carat = model.Carat ?? existing.Carat;

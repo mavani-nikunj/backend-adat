@@ -503,6 +503,48 @@ namespace AdatHisabdubai.Controllers
                     });
                 }
             }
+            var adatList = await _context.Adatdetails
+    .Where(x => x.ClientId == clientId && x.YearId == yearId &&
+        (!fromdate.HasValue || x.Invoicedate >= fromdate.Value) &&
+        (!todata.HasValue || x.Invoicedate <= todata.Value))
+    .ToListAsync();
+
+            foreach (var adat in adatList)
+            {
+                var receivedAmount = await _context.Transactions
+                    .Where(x => x.ClientId == clientId &&
+                                x.YearId == yearId &&
+                                x.InvoiceId == adat.InvoiceId && x.PartyId == adat.AdatPartyId && // 🔥 IMPORTANT (InvoiceId → AdatId)
+                                x.PaymentType == "Payment")
+                    .SumAsync(x => x.Amount) ?? 0;
+
+                var adatAmount = adat.Amount ?? 0;
+
+                var outstandingAmount = adatAmount - receivedAmount;
+
+                if (outstandingAmount > 0)
+                {
+                    var today = DateOnly.FromDateTime(DateTime.Now);
+
+                    var daysOutstanding = adat.Invoicedate.HasValue
+                        ? (today.DayNumber - adat.Invoicedate.Value.DayNumber)
+                        : 0;
+
+                    outstandingInvoices.Add(new Outstandinginvoicedto
+                    {
+                        InvoiceId = adat.Id, // you can rename later if needed
+                        PartyName = (await _context.Partymasters.FindAsync(adat.AdatPartyId))?.Name,
+                        InvoiceDate = adat.Invoicedate,
+                        DueDate = adat.Invoicedate,
+                        InvoiceAmount = adatAmount,
+                        ReceiveAmount = receivedAmount,
+                        OutstandingAmount = outstandingAmount,
+                        Days = daysOutstanding,
+                        SubParty = null // if not applicable
+
+                    });
+                }
+            }
             return Ok(new
             {
                 Success = true,

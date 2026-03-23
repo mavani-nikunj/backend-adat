@@ -543,6 +543,15 @@ namespace AdatHisabdubai.Controllers
                         Message = "Invalid ShiperId"
                     });
                 }
+                var invoiceNoExitsinTransaction = await _context.Transactions.Where(t => t.InvoiceId == invoice.Id && t.PartyId == invoice.ShiperId).FirstOrDefaultAsync();
+                if (invoiceNoExitsinTransaction != null)
+                {
+                    return StatusCode(500, new
+                    {
+                        Success = false,
+                        Message = "Cannot update invoice because it is associated with a transaction"
+                    });
+                }
                 invoice.ShiperId = dto.ShiperId ?? invoice.ShiperId;
                 invoice.ConsignId = dto.ConsignId ?? invoice.ConsignId;
                 invoice.Invoicedate = dto.Invoicedate ?? invoice.Invoicedate;
