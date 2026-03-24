@@ -455,7 +455,45 @@ namespace AdatHisabdubai.Controllers
                     t.AdatPercent,
                     t.AmountWithoutAdat,
                     t.BalanceType,
-                    t.InvoiceId
+                    InvoiceDetail = _context.Invoicedetails
+            .Where(i => i.Id == t.InvoiceId && i.ShiperId == t.PartyId)
+            .Select(i => new
+            {
+                InvoiceId = i.Id,
+                InvoiceDate = i.Invoicedate,
+
+                OutstandingAmount =
+                    (i.IsExtra == true
+                        ? (i.Amount ?? 0)
+                        : (i.FinalAmount ?? 0))
+                    -
+                    (_context.Transactions
+                        .Where(x => x.InvoiceId == i.Id && x.PartyId == i.ShiperId &&
+                                    x.ClientId == t.ClientId &&
+                                    x.YearId == t.YearId &&
+                                    x.PaymentType == "Receive")
+                        .Sum(x => (decimal?)x.Amount) ?? 0)
+            })
+            .FirstOrDefault()
+
+        ?? _context.Adatdetails
+            .Where(a => a.InvoiceId == t.InvoiceId && a.AdatPartyId == t.PartyId)
+            .Select(a => new
+            {
+                InvoiceId = a.Id,
+                InvoiceDate = a.Invoicedate,
+
+                OutstandingAmount =
+                    (a.Amount ?? 0)
+                    -
+                    (_context.Transactions
+                        .Where(x => x.PartyId == a.AdatPartyId && x.InvoiceId == a.InvoiceId &&
+                                    x.ClientId == t.ClientId &&
+                                    x.YearId == t.YearId &&
+                                    x.PaymentType == "Payment")
+                        .Sum(x => (decimal?)x.Amount) ?? 0)
+            })
+            .FirstOrDefault()
                 })
                 .ToListAsync();
 
